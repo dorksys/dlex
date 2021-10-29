@@ -43,9 +43,6 @@ defmodule Dlex.Repo do
         Dlex.Repo.Sup.start_link(start_opts)
       end
 
-      def set(node, opts \\ []), do: Dlex.Repo.set(@name, node, opts)
-      def set!(node, opts \\ []), do: Dlex.Repo.set!(@name, node, opts)
-
       def mutate(node, opts \\ []), do: Dlex.Repo.mutate(@name, node, opts)
       def mutate!(node, opts \\ []), do: Dlex.Repo.mutate!(@name, node, opts)
 
@@ -95,13 +92,6 @@ defmodule Dlex.Repo do
     with {:ok, data} <- Dlex.query(conn, query, params), do: decode(data, lookup, false)
   end
 
-  def set!(conn, data, opts), do: mutate!(conn, data, opts)
-
-  @doc """
-  The same as `mutate`.
-  """
-  def set(conn, data, opts), do: mutate(conn, data, opts)
-
   @doc """
   The same as `mutate/2`, but return result of sucessful operation or raises.
   """
@@ -119,11 +109,12 @@ defmodule Dlex.Repo do
     do: {:error, changeset}
 
   def mutate(conn, %{__struct__: Ecto.Changeset, valid?: true} = changeset, opts) do
-    %{data: %{__struct__: struct} = data, changes: changes} = changeset
+    %{data: %{__struct__: struct} = map, changes: changes} = changeset
 
-    with {:ok, new_data} <-
-           mutate(conn, Map.merge(changes, %{__struct__: struct, uid: nil}), opts) do
-      {:ok, Map.merge(data, new_data)}
+    data = Map.merge(changes, %{__struct__: struct, uid: nil})
+
+    with {:ok, new_map} <- mutate(conn, data, opts) do
+      {:ok, Map.merge(map, new_map)}
     end
   end
 
@@ -135,7 +126,7 @@ defmodule Dlex.Repo do
         {:error, %Error{action: :mutate, reason: error}}
 
       encoded_data ->
-        with {:ok, %{uids: ids_map}} <- Dlex.set(conn, %{}, encoded_data, opts) do
+        with {:ok, %{uids: ids_map}} <- Dlex.mutate(conn, %{}, %{set: encoded_data}, opts) do
           {:ok, Utils.replace_ids(data_with_ids, ids_map, :uid)}
         end
     end
@@ -219,16 +210,6 @@ defmodule Dlex.Repo do
   def source(struct), do: struct.__schema__(:source)
 
   @doc """
-  The same as `get/3`, but return result or raises.
-  """
-  def get!(conn, meta, uid) do
-    case get(conn, meta, uid) do
-      {:ok, result} -> result
-      {:error, error} -> raise error
-    end
-  end
-
-  @doc """
   Get by uid
   """
   def get(conn, %{lookup: lookup}, uid) do
@@ -243,6 +224,16 @@ defmodule Dlex.Repo do
           with {:error, error} <- decode(map, lookup),
                do: {:error, %Error{action: :get, reason: error}}
       end
+    end
+  end
+
+  @doc """
+  The same as `get/3`, but return result or raises.
+  """
+  def get!(conn, meta, uid) do
+    case get(conn, meta, uid) do
+      {:ok, result} -> result
+      {:error, error} -> raise error
     end
   end
 

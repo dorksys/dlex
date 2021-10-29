@@ -84,5 +84,6 @@ defmodule Dlex.Type.Operation do
   end
 
   def render_key({"index", true}, tokenizers), do: "@index(#{Enum.join(tokenizers, ", ")})"
+  def render_key({"redact", true}, _), do: ""
   def render_key({key, true}, _), do: "@#{key}"
 end

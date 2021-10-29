@@ -18,7 +18,7 @@ defmodule Dlex.RepoTest do
 
     test "basic crud operations" do
       user = %User{name: "Alice", age: 25}
-      assert {:ok, %User{uid: uid}} = TestRepo.set(user)
+      assert {:ok, %User{uid: uid}} = TestRepo.mutate(user)
       assert uid != nil
       assert {:ok, %User{uid: ^uid, name: "Alice", age: 25}} = TestRepo.get(uid)
       assert %User{uid: ^uid, name: "Alice", age: 25} = TestRepo.get!(uid)
@@ -30,10 +30,10 @@ defmodule Dlex.RepoTest do
                TestRepo.all("{uid_get(func: uid(#{uid})) {uid expand(_all_)}}")
 
       invalid_changeset = Ecto.Changeset.cast(%User{}, %{name: 20, age: "Bernard"}, [:name, :age])
-      assert {:error, %Ecto.Changeset{valid?: false}} = TestRepo.set(invalid_changeset)
+      assert {:error, %Ecto.Changeset{valid?: false}} = TestRepo.mutate(invalid_changeset)
 
       valid_changeset = Ecto.Changeset.cast(%User{}, %{name: "Bernard", age: 20}, [:name, :age])
-      assert {:ok, %{uid: uid2}} = TestRepo.set(valid_changeset)
+      assert {:ok, %{uid: uid2}} = TestRepo.mutate(valid_changeset)
 
       assert uid != nil
       assert uid2 != nil

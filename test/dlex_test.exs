@@ -66,7 +66,7 @@ defmodule DlexTest do
   """
 
   test "mutation json", %{pid: pid} do
-    assert {:ok, %{uids: uids}} = Dlex.set(pid, @mutation_json)
+    assert {:ok, %{uids: uids}} = Dlex.mutate(pid, %{set: @mutation_json})
     assert 3 == map_size(uids)
 
     assert %{
@@ -78,19 +78,19 @@ defmodule DlexTest do
                  %{"name" => "Mark", "uid" => _uid3}
                ]
              }
-           } = Dlex.set!(pid, @mutation_json, return_json: true)
+           } = Dlex.mutate!(pid, %{set: @mutation_json}, return_json: true)
   end
 
   test "mutation nquads", %{pid: pid} do
     assert %{uids: %{"luke" => uid_luke, "leia" => _uid_leia, "sw1" => _uid_sw1}} =
-             Dlex.set!(pid, @mutation_nquads)
+             Dlex.mutate!(pid, %{set: @mutation_nquads})
 
     assert %{"name" => "Luke Skywalker"} == uid_get(pid, uid_luke)
   end
 
   test "query with parameters", %{pid: pid} do
     json = %{"name" => "Foo", "surname" => "bar", "dgraph.type" => "CastMember"}
-    assert %{json: %{"uid" => uid}} = Dlex.set!(pid, json, return_json: true)
+    assert %{json: %{"uid" => uid}} = Dlex.mutate!(pid, %{set: json}, return_json: true)
     assert %{"uid" => ^uid, "name" => "Foo", "surname" => "bar"} = get_by_name(pid, "Foo")
   end
 
@@ -106,7 +106,7 @@ defmodule DlexTest do
       "dgraph.type" => "User"
     }
 
-    assert %{json: %{"uid" => _uid}} = Dlex.set!(pid, json, return_json: true)
+    assert %{json: %{"uid" => _uid}} = Dlex.mutate!(pid, %{set: json}, return_json: true)
 
     statement = "query all($id: int) {all(func: eq(indexed_id, $id)) {uid expand(_all_)}}"
 
@@ -114,8 +114,12 @@ defmodule DlexTest do
   end
 
   test "basic transaction test", %{pid: pid} do
-    Dlex.set!(pid, %{"dgraph.type" => "Client", "name" => "client1", "balance" => 1000})
-    Dlex.set!(pid, %{"dgraph.type" => "Client", "name" => "client2", "balance" => 1000})
+    Dlex.mutate!(pid, %{
+      set: [
+        %{"dgraph.type" => "Client", "name" => "client1", "balance" => 1000},
+        %{"dgraph.type" => "Client", "name" => "client2", "balance" => 1000}
+      ]
+    })
 
     tasks = for i <- [1, 2], do: Task.async(fn -> move_balance(pid, i * 100) end)
     results = for task <- tasks, do: Task.await(task)
@@ -136,7 +140,9 @@ defmodule DlexTest do
 
   test "deletion", %{pid: pid} do
     assert %{json: %{"uid" => uid}} =
-             Dlex.set!(pid, %{"name" => "deletion_test", "dgraph.type" => "CastMember"},
+             Dlex.mutate!(
+               pid,
+               %{set: %{"name" => "deletion_test", "dgraph.type" => "CastMember"}},
                return_json: true
              )
 
@@ -197,10 +203,12 @@ defmodule DlexTest do
 
       assert %{"email" => "foo@bar_changed"} = get_by_name(pid, "upsert_test")
 
-      query = %{query: ~s|{ q(func: eq(email, "foo@bar_changed")) { v as uid } }|}
+      query = ~s|{ q(func: eq(email, "foo@bar_changed")) { v as uid } }|
 
       assert %{json: json, uids: uids, queries: %{"q" => [%{"uid" => ^new_uid}]}} =
-               Dlex.set!(pid, query, ~s|uid(v) <email> "foo@bar_changed2" .|, return_json: true)
+               Dlex.mutate!(pid, %{query: query}, %{set: ~s|uid(v) <email> "foo@bar_changed2" .|},
+                 return_json: true
+               )
 
       assert json === %{}
       assert uids === %{}
@@ -208,14 +216,14 @@ defmodule DlexTest do
       assert %{"email" => "foo@bar_changed2"} = get_by_name(pid, "upsert_test")
 
       # assert existing node used when email already exists, :json has data in it, :query is empty when `var` used
-      query = %{query: ~s|{ v as var(func: eq(email, "foo@bar_changed2")) }|}
+      query = ~s|{ v as var(func: eq(email, "foo@bar_changed2")) }|
       mutation_json = %{"uid" => "uid(v)", "email" => "foo@bar_changed3"}
 
       assert %{
                json: %{"uid" => "uid(v)", "email" => "foo@bar_changed3"},
                uids: uids,
                queries: queries
-             } = Dlex.mutate!(pid, query, %{set: mutation_json}, return_json: true)
+             } = Dlex.mutate!(pid, %{query: query}, %{set: mutation_json}, return_json: true)
 
       assert uids === %{}
       assert queries === %{}
@@ -367,10 +375,10 @@ defmodule DlexTest do
       %{"uid" => uid2, "balance" => balance2} = get_by_name(conn, "client2")
 
       if sum == 100, do: :timer.sleep(50)
-      Dlex.set!(conn, %{"uid" => uid1, "balance" => balance1 - sum}, return_json: true)
+      Dlex.mutate!(conn, %{set: %{"uid" => uid1, "balance" => balance1 - sum}}, return_json: true)
 
       if sum == 200, do: :timer.sleep(100)
-      Dlex.set!(conn, %{"uid" => uid2, "balance" => balance2 + sum}, return_json: true)
+      Dlex.mutate!(conn, %{set: %{"uid" => uid2, "balance" => balance2 + sum}}, return_json: true)
     end)
   end
 end

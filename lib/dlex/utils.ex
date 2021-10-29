@@ -23,11 +23,14 @@ defmodule Dlex.Utils do
   end
 
   defp add_blank_ids(map, counter, uid_key) when is_map(map) do
-    if is_location?(map) or (Map.has_key?(map, :__struct__) and !Map.has_key?(map, :uid)) do
-      {map, counter}
-    else
-      map = Map.update(map, uid_key, "_:#{counter}", &(&1 || "_:#{counter}"))
-      :maps.fold(&do_add_blank_ids(&1, &2, &3, uid_key), {%{}, counter + 1}, map)
+    cond do
+      is_location?(map) or
+          (Map.has_key?(map, :__struct__) and !Map.has_key?(map, :uid)) ->
+        {map, counter}
+
+      true ->
+        map = Map.update(map, uid_key, "_:#{counter}", &(&1 || "_:#{counter}"))
+        :maps.fold(&do_add_blank_ids(&1, &2, &3, uid_key), {%{}, counter + 1}, map)
     end
   end
 

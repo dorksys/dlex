@@ -36,11 +36,13 @@ defmodule Dlex.Node do
 
   Dgraph types:
 
-      * `:integer`
-      * `:float`
-      * `:string`
-      * `:geo`
+      * `:boolean`
       * `:datetime`
+      * `:float`
+      * `:geo`
+      * `:integer`
+      * `:password`
+      * `:string`
       * `:uid`
       * `:auto` - special type, which can be used for `depends_on`
 
@@ -234,11 +236,13 @@ defmodule Dlex.Node do
   end
 
   @types_mapping [
-    integer: "int",
-    float: "float",
-    string: "string",
-    geo: "geo",
+    boolean: "bool",
     datetime: "datetime",
+    float: "float",
+    geo: "geo",
+    integer: "int",
+    password: "password",
+    string: "string",
     uid: "[uid]"
   ]
 
