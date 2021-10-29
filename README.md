@@ -21,21 +21,7 @@ Preferred and more performant option is to use `grpc`:
 ```elixir
 def deps do
   [
-    {:jason, "~> 1.0"},
-    {:dlex, "~> 0.6.0"}
-  ]
-end
-```
-
-`http` transport:
-
-```elixir
-def deps do
-  [
-    {:jason, "~> 1.0"},
-    {:castore, "~> 0.1.0", optional: true},
-    {:mint, github: "ericmj/mint", branch: "master"},
-    {:dlex, "~> 0.5.0"}
+    {:dlex, github: "m0dnar/dlex"}
   ]
 end
 ```
