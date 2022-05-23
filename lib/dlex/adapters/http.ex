@@ -61,8 +61,7 @@ if Code.ensure_loaded?(Mint.HTTP) do
 
     @impl true
     def mutate(channel, request, json_lib, opts) do
-      %{mutations: [mutation | _] = mutations, start_ts: start_ts, query: query, vars: variables} =
-        request
+      %{mutations: [mutation | _] = mutations, start_ts: start_ts, query: query, vars: variables} = request
 
       type = mutation_type(mutation)
 
